@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Minecraft V6 Finale</title>
+    <style>
+        :root {
+            --bg: #111;
+            --panel: #7a7a7a;
+            --panel2: #444;
+            --accent: #4f8f2f;
+            --text: #fff;
+            --danger: #aa2222;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: Segoe UI, Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #0d1b33, #3a6fb4 55%, #6cb6ff);
+            z-index: 100;
+        }
+
+        .screen.hidden {
+            display: none;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, .65);
+            padding: 24px 28px;
+            border: 3px solid #dce9ff;
+            border-radius: 12px;
+            max-width: 560px;
+            width: min(90vw, 560px);
+            text-align: center;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
+        }
+
+        .card h1 {
+            font-size: clamp(22px, 4vw, 40px);
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .card p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #dfefff;
+            margin-bottom: 14px;
+        }
+
+        .btns {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        button,
+        .mode {
+            pointer-events: auto;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 700;
+            color: #fff;
+            background: #2d6b2d;
+            box-shadow: 0 4px 0 #163a16;
+        }
+
+        button.secondary {
+            background: #505050;
+            box-shadow: 0 4px 0 #2e2e2e;
+        }
+
+        button.danger {
+            background: #8f2020;
+            box-shadow: 0 4px 0 #501111;
+        }
+
+        .mode.active {
+            background: #4f8f2f;
+            box-shadow: 0 4px 0 #214d18;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #dfefff;
+            opacity: .85;
+            line-height: 1.7;
+        }
+
+        #crosshair {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, .95);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        #hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        #topbar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px 10px;
+            background: rgba(0, 0, 0, .45);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .bar {
+            height: 10px;
+            width: 140px;
+            background: #444;
+            border: 1px solid #999;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .bar>div {
+            height: 100%;
+            transition: width .2s ease;
+        }
+
+        .bar.health>div {
+            background: linear-gradient(90deg, #df4d4d, #a61a1a);
+        }
+
+        .bar.hunger>div {
+            background: linear-gradient(90deg, #e8ca4b, #8f7210);
+        }
+
+        #hotbar {
+            position: absolute;
+            left: 50%;
+            bottom: 14px;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            padding: 6px;
+            background: rgba(0, 0, 0, .55);
+            border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: 8px;
+        }
+
+        .slot {
+            width: 46px;
+            height: 46px;
+            border: 2px solid #666;
+            background: #6b6b6b;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+        }
+
+        .slot.active {
+            border-color: #fff;
+            box-shadow: 0 0 0 2px #1d8cff inset;
+        }
+
+        .slot .count {
+            position: absolute;
+            right: 3px;
+            bottom: 2px;
+            font-size: 9px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .slot .label {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            font-size: 7px;
+            color: #ddd;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        #actionbar {
+            position: absolute;
+            left: 50%;
+            bottom: 80px;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .6);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            opacity: .95;
+        }
+
+        #inventory {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .45);
+            z-index: 50;
+            pointer-events: auto;
+        }
+
+        #inventory.hidden {
+            display: none;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, .95);
+            color: #222;
+            padding: 12px;
+            border: 3px solid #2d2d2d;
+            border-radius: 10px;
+            max-width: min(92vw, 780px);
+        }
+
+        .panel h3 {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(9, 44px);
+            gap: 4px;
+        }
+
+        .slot.big {
+            width: 54px;
+            height: 54px;
+        }
+
+        .slot .icon {
+            font-size: 20px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            margin-top: 8px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row button {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        #debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, .55);
+            padding: 8px 10px;
+            border: 1px solid rgba(255, 255, 255, .16);
+            border-radius: 8px;
+            font-size: 10px;
+            line-height: 1.45;
+            min-width: 190px;
+            white-space: pre-wrap;
+            pointer-events: none;
+        }
+
+        #debug.hidden {
+            display: none;
+        }
+
+        #touch {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .touch-btn {
+            position: absolute;
+            pointer-events: auto;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .18);
+            border: 2px solid rgba(255, 255, 255, .35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            backdrop-filter: blur(3px);
+        }
+
+        .touch-btn:active {
+            transform: scale(.96);
+            background: rgba(255, 255, 255, .3);
+        }
+
+        #touch-jump {
+            right: 18px;
+            bottom: 110px;
+        }
+
+        #touch-break {
+            right: 92px;
+            bottom: 110px;
+        }
+
+        #touch-place {
+            right: 162px;
+            bottom: 110px;
+        }
+
+        #touch-inv {
+            right: 18px;
+            bottom: 24px;
+        }
+
+        #touch-sprint {
+            left: 18px;
+            bottom: 24px;
+        }
+
+        #touch-move {
+            left: 18px;
+            bottom: 110px;
+            width: 92px;
+            height: 92px;
+            border-radius: 50%;
+        }
+
+        #touch-move .dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .2);
+            border: 2px solid rgba(255, 255, 255, .35);
+        }
+
+        @media(max-width:700px) {
+            .panel {
+                padding: 8px;
+            }
+
+            .grid {
+                grid-template-columns: repeat(9, 38px);
+                gap: 3px;
+            }
+
+            .slot {
+                width: 38px;
+                height: 38px;
+            }
+
+            .slot.big {
+                width: 48px;
+                height: 48px;
+            }
+
+            .card {
+                padding: 18px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu" class="screen">
+        <div class="card">
+            <h1>MINECRAFT V6 FINALE</h1>
+            <p>Monde procédural, chunks, collision, sauvegarde locale, inventaire, craft 2×2, coffres, four simplifié,
+                mobs et contrôles mobile.</p>
+            <div class="btns">
+                <button class="mode active" data-mode="survival">⚔ Survie</button>
+                <button class="mode" data-mode="creative">🎨 Créatif</button>
+            </div>
+            <div class="btns">
+                <button id="startBtn">▶ Jouer</button>
+                <button id="loadBtn" class="secondary">↺ Charger la sauvegarde</button>
+            </div>
+            <div class="hint">ZQSD/WASD=Déplacement · Espace=Sauter · Shift=Courir · Clic G=Breaker · Clic D=Placer ·
+                E=Inventaire · F3=Debug · Échap=Pause</div>
+        </div>
+    </div>
+    <div id="pause" class="screen hidden">
+        <div class="card">
+            <h1>⏸ Pause</h1>
+            <div class="btns"><button id="resumeBtn">▶ Reprendre</button><button id="menuBtn" class="secondary">🏠
+                    Menu</button></div>
+        </div>
+    </div>
+    <div id="death" class="screen hidden">
+        <div class="card">
+            <h1>☠ Vous êtes mort</h1>
+            <div class="btns"><button id="respawnBtn" class="danger">↺ Réapparaître</button></div>
+        </div>
+    </div>
+    <div id="ui">
+        <div id="hud">
+            <div id="crosshair"></div>
+            <div id="topbar">
+                <div>Mode: <b id="modeLabel">Survie</b></div>
+                <div class="bar health">
+                    <div id="hpBar" style="width:100%"></div>
+                </div>
+                <div class="bar hunger">
+                    <div id="hungerBar" style="width:100%"></div>
+                </div>
+                <div id="coords">x:0 y:0 z:0</div>
+            </div>
+            <div id="hotbar"></div>
+            <div id="actionbar">Cliquez pour casser/placer · E pour ouvrir l'inventaire</div>
+            <div id="debug" class="hidden"></div>
+        </div>
+        <div id="inventory" class="hidden">
+            <div class="panel">
+                <h3>Inventaire · Craft 2x2</h3>
+                <div class="row">
+                    <div>
+                        <div class="grid" id="invGrid"></div>
+                        <div class="btn-row">
+                            <button id="craftBtn">🛠 Craft</button>
+                            <button id="closeInvBtn" class="secondary">Fermer</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="grid" id="hotbarInv"></div>
+                        <div class="grid" id="recipeGrid" style="margin-top:8px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="touch">
+            <div class="touch-btn" id="touch-move">
+                <div class="dot"></div>
+            </div>
+            <div class="touch-btn" id="touch-break">⛏</div>
+            <div class="touch-btn" id="touch-place">🧱</div>
+            <div class="touch-btn" id="touch-jump">⬆</div>
+            <div class="touch-btn" id="touch-inv">🎒</div>
+            <div class="touch-btn" id="touch-sprint">⚡</div>
+        </div>
+    </div>
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+        import { BufferGeometryUtils } from 'https://unpkg.com/three@0.152.2/examples/jsm/utils/BufferGeometryUtils.js';
+
+        const CHUNK_SIZE = 16;
+        const CHUNK_H = 48;
+        const RENDER_DIST = 4;
+        const SEA_LEVEL = 20;
+        const B = { AIR: 0, BEDROCK: 1, STONE: 2, DIRT: 3, GRASS: 4, SAND: 5, WOOD: 6, LEAVES: 7, PLANK: 8, COBBLE: 9, CHEST: 10, CRAFT_TABLE: 11, WATER: 12, CACTUS: 13, TORCH: 14 };
+        const BLOCKS = {
+            [B.AIR]: { name: 'Air', solid: false, color: [0, 0, 0], transparent: true },
+            [B.BEDROCK]: { name: 'Bedrock', solid: true, color: [0.18, 0.18, 0.2] },
+            [B.STONE]: { name: 'Pierre', solid: true, color: [0.45, 0.45, 0.49] },
+            [B.DIRT]: { name: 'Terre', solid: true, color: [0.45, 0.30, 0.16] },
+            [B.GRASS]: { name: 'Herbe', solid: true, color: [0.30, 0.58, 0.22] },
+            [B.SAND]: { name: 'Sable', solid: true, color: [0.88, 0.82, 0.58] },
+            [B.WOOD]: { name: 'Bois', solid: true, color: [0.42, 0.28, 0.14] },
+            [B.LEAVES]: { name: 'Feuilles', solid: true, color: [0.18, 0.55, 0.18], transparent: true },
+            [B.PLANK]: { name: 'Planches', solid: true, color: [0.62, 0.44, 0.26] },
+            [B.COBBLE]: { name: 'Pierre taillée', solid: true, color: [0.42, 0.42, 0.45] },
+            [B.CHEST]: { name: 'Coffre', solid: true, color: [0.58, 0.36, 0.16] },
+            [B.CRAFT_TABLE]: { name: 'Table de craft', solid: true, color: [0.54, 0.36, 0.18] },
+            [B.WATER]: { name: 'Eau', solid: false, color: [0.18, 0.37, 0.72], transparent: true },
+            [B.CACTUS]: { name: 'Cactus', solid: true, color: [0.23, 0.56, 0.23] },
+            [B.TORCH]: { name: 'Torche', solid: false, color: [0.95, 0.78, 0.20], transparent: true }
+        };
+        const ITEMS = {
+            [B.GRASS]: { name: 'Herbe', icon: '🌿', block: B.GRASS },
+            [B.STONE]: { name: 'Pierre', icon: '🪨', block: B.STONE },
+            [B.DIRT]: { name: 'Terre', icon: '🌱', block: B.DIRT },
+            [B.SAND]: { name: 'Sable', icon: '🏜', block: B.SAND },
+            [B.WOOD]: { name: 'Bois', icon: '🪵', block: B.WOOD },
+            [B.PLANK]: { name: 'Planches', icon: '🪵', block: B.PLANK },
+            [B.COBBLE]: { name: 'Pierre taillée', icon: '🪨', block: B.COBBLE },
+            [B.CHEST]: { name: 'Coffre', icon: '🧺', block: B.CHEST },
+            [B.CRAFT_TABLE]: { name: 'Table de craft', icon: '🪑', block: B.CRAFT_TABLE },
+            [B.CACTUS]: { name: 'Cactus', icon: '🌵', block: B.CACTUS },
+            [B.TORCH]: { name: 'Torche', icon: '🔥', block: B.TORCH },
+            pickaxe: { name: 'Pioche', icon: '⛏', tool: 'pickaxe' },
+            axe: { name: 'Hache', icon: '🪓', tool: 'axe' },
+            shovel: { name: 'Pelle', icon: '🪹', tool: 'shovel' },
+            sword: { name: 'Épée', icon: '🗡', tool: 'sword' }
+        };
+        const RECIPES = [
+            { need: [[B.WOOD, 1]], out: [B.PLANK, 4] },
+            { need: [[B.PLANK, 2]], out: ['stick', 4] },
+            { need: [[B.PLANK, 4]], out: [B.CRAFT_TABLE, 1] },
+            { need: [[B.PLANK, 4]], out: [B.CHEST, 1] },
+            { need: [[B.PLANK, 3], ['stick', 1]], out: ['pickaxe', 1] },
+            { need: [[B.PLANK, 3], ['stick', 1]], out: ['axe', 1] },
+            { need: [[B.PLANK, 1], ['stick', 1]], out: ['shovel', 1] },
+            { need: [[B.PLANK, 2], ['stick', 1]], out: ['sword', 1] }
+        ];
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog = new THREE.Fog(0x87ceeb, 80, 140);
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, 240);
+        const clock = new THREE.Clock();
+        const ambient = new THREE.AmbientLight(0x89ade0, .65); scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xfff0b0, 1.0); sun.position.set(20, 30, 10); scene.add(sun);
+        const worldGroup = new THREE.Group(); scene.add(worldGroup);
+        const chunks = new Map();
+        const mobs = [];
+        const chests = new Map();
+        const furnaces = new Map();
+        const saveKey = 'mc_v6_save_v1';
+
+        const menu = document.getElementById('menu');
+        const pause = document.getElementById('pause');
+        const death = document.getElementById('death');
+        const inventoryUI = document.getElementById('inventory');
+        const hotbarEl = document.getElementById('hotbar');
+        const invGrid = document.getElementById('invGrid');
+        const hotbarInv = document.getElementById('hotbarInv');
+        const recipeGrid = document.getElementById('recipeGrid');
+        const actionbar = document.getElementById('actionbar');
+        const debugEl = document.getElementById('debug');
+        const modeLabel = document.getElementById('modeLabel');
+        const hpBar = document.getElementById('hpBar');
+        const hungerBar = document.getElementById('hungerBar');
+        const coordsEl = document.getElementById('coords');
+
+        let currentMode = 'survival';
+        let gameStarted = false, paused = false, inventoryOpen = false, pointerLocked = false;
+        let worldTime = 0;
+        let lastSave = 0;
+        const keys = {};
+        const player = {
+            pos: new THREE.Vector3(0, 30, 0),
+            vel: new THREE.Vector3(),
+            yaw: -Math.PI / 2,
+            pitch: 0,
+            radius: 0.28,
+            height: 1.8,
+            health: 20,
+            hunger: 20,
+            onGround: false,
+            mode: 'survival',
+            inventory: [],
+            hotbarIndex: 0,
+            selectedId: B.GRASS,
+            sprint: false,
+            fly: false
+        };
+        for (let i = 0; i < 27; i++) player.inventory.push(null);
+        player.inventory[0] = { id: B.GRASS, count: 64 };
+        player.inventory[1] = { id: B.STONE, count: 64 };
+        player.inventory[2] = { id: B.DIRT, count: 64 };
+        player.inventory[3] = { id: B.WOOD, count: 64 };
+        player.inventory[4] = { id: B.PLANK, count: 64 };
+        player.inventory[5] = { id: B.CRAFT_TABLE, count: 16 };
+        player.inventory[6] = { id: B.CHEST, count: 8 };
+        player.inventory[7] = { id: 'pickaxe', count: 1 };
+        player.inventory[8] = { id: 'axe', count: 1 };
+
+        function resetPlayer() {
+            player.pos.set(0, 30, 0); player.vel.set(0, 0, 0); player.yaw = -Math.PI / 2; player.pitch = 0; player.health = 20; player.hunger = 20; player.onGround = false; player.sprint = false; player.fly = false;
+        }
+        function setMode(mode) { currentMode = mode; player.mode = mode; document.querySelectorAll('.mode').forEach(b => b.classList.toggle('active', b.dataset.mode === mode)); modeLabel.textContent = mode === 'creative' ? 'Créatif' : 'Survie'; }
+        function startGame() {
+            gameStarted = true; paused = false; menu.classList.add('hidden'); pause.classList.add('hidden'); death.classList.add('hidden'); document.body.requestPointerLock?.(); setMode(currentMode); resetPlayer(); if (!chunks.size) loadWorld(); updateUI();
+        }
+        function pauseGame() { if (!gameStarted) return; paused = true; pause.classList.remove('hidden'); document.exitPointerLock?.(); }
+        function resumeGame() { paused = false; pause.classList.add('hidden'); document.body.requestPointerLock?.(); }
+        function backToMenu() { gameStarted = false; paused = false; menu.classList.remove('hidden'); inventoryOpen = false; inventoryUI.classList.add('hidden'); document.exitPointerLock?.(); }
+        function respawn() { resetPlayer(); death.classList.add('hidden'); gameStarted = true; paused = false; document.body.requestPointerLock?.(); }
+
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('loadBtn').addEventListener('click', () => { loadSave(); startGame(); });
+        document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+        document.getElementById('menuBtn').addEventListener('click', backToMenu);
+        document.getElementById('respawnBtn').addEventListener('click', respawn);
+        document.querySelectorAll('.mode').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Escape', 'KeyE', 'KeyF', 'KeyB'].includes(e.code)) e.preventDefault();
+            keys[e.code] = true;
+            if (e.code === 'Escape' && gameStarted) { if (inventoryOpen) { inventoryOpen = false; inventoryUI.classList.add('hidden'); document.body.requestPointerLock?.(); } else if (!paused) pauseGame(); else resumeGame(); }
+            if (e.code === 'KeyE') { if (gameStarted) { inventoryOpen = !inventoryOpen; inventoryUI.classList.toggle('hidden', !inventoryOpen); if (inventoryOpen) document.exitPointerLock?.(); else document.body.requestPointerLock?.(); } }
+            if (e.code === 'KeyF' && e.ctrlKey) { debugEl.classList.toggle('hidden'); }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.sprint = true;
+            if (e.code === 'Space' && gameStarted && !paused && player.onGround) { player.vel.y = 6.4; player.onGround = false; }
+        });
+        document.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') player.sprint = false; });
+        document.addEventListener('mousedown', (e) => {
+            if (!gameStarted || paused || inventoryOpen) return;
+            if (document.pointerLockElement !== document.body) document.body.requestPointerLock?.();
+            if (e.button === 0) breakBlock();
+            if (e.button === 2) placeBlock();
+        });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('pointerlockchange', () => pointerLocked = document.pointerLockElement === document.body);
+
+        document.addEventListener('mousemove', (e) => {
+            if (!gameStarted || paused || inventoryOpen || !pointerLocked) return;
+            player.yaw -= e.movementX * 0.0022;
+            player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch - e.movementY * 0.0022));
+        });
+
+        function getSelectedSlot() { return player.inventory[player.hotbarIndex] || null; }
+        function setSelectedSlot(index) { player.hotbarIndex = index; updateHotbar(); }
+        function inventoryIndexFromSlot(slot) { return slot.dataset.index; }
+        function addItem(id, count = 1) {
+            const target = player.inventory.findIndex(s => s && s.id === id && s.count < 64);
+            if (target >= 0) { player.inventory[target].count += count; return true; }
+            const empty = player.inventory.findIndex(s => !s);
+            if (empty >= 0) { player.inventory[empty] = { id, count }; return true; }
+            return false;
+        }
+        function consumeItem(id, count = 1) {
+            const slot = player.inventory.findIndex(s => s && s.id === id);
+            if (slot < 0) return false;
+            player.inventory[slot].count -= count;
+            if (player.inventory[slot].count <= 0) player.inventory[slot] = null;
+            return true;
+        }
+        function canCraftRecipe(recipe) {
+            const inv = player.inventory.filter(Boolean);
+            const counts = new Map();
+            for (const slot of player.inventory) { if (slot) { counts.set(slot.id, (counts.get(slot.id) || 0) + slot.count); } }
+            for (const [id, need] of recipe.need) {
+                const have = counts.get(id) || 0;
+                if (have < need) return false;
+            }
+            return true;
+        }
+        function craftRecipe() {
+            const recipe = RECIPES[0];
+            if (!canCraftRecipe(recipe)) { actionbar.textContent = 'Ingrédients insuffisants'; setTimeout(() => actionbar.textContent = 'Cliquez pour casser/placer · E pour ouvrir l\'inventaire', 1500); return; }
+            for (const [id, need] of recipe.need) { consumeItem(id, need); }
+            const [outId, outCount] = recipe.out; addItem(outId, outCount);
+            updateUI();
+        }
+
+        function getBlock(x, y, z) {
+            if (y < 0 || y >= CHUNK_H) return B.AIR;
+            const cx = Math.floor(x / CHUNK_SIZE), cz = Math.floor(z / CHUNK_SIZE);
+            const chunk = chunks.get(`${cx},${cz}`);
+            if (!chunk) return B.AIR;
+            const bx = ((x % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            const bz = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            return chunk.blocks[bx + bz * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE];
+        }
+        function setBlock(x, y, z, id) {
+            if (y < 0 || y >= CHUNK_H) return;
+            const cx = Math.floor(x / CHUNK_SIZE), cz = Math.floor(z / CHUNK_SIZE);
+            const key = `${cx},${cz}`;
+            let chunk = chunks.get(key);
+            if (!chunk) {
+                chunk = { x: cx, z: cz, blocks: new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_H), ready: false };
+                chunks.set(key, chunk);
+                generateChunk(chunk);
+            }
+            const bx = ((x % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            const bz = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
+            chunk.blocks[bx + bz * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE] = id;
+            rebuildChunkMesh(chunk);
+            const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            for (const [dx, dz] of neighbors) {
+                const nk = `${cx + dx},${cz + dz}`; const nc = chunks.get(nk); if (nc) rebuildChunkMesh(nc);
+            }
+        }
+        function noise2D(x, z) {
+            const sx = Math.sin(x * 0.075 + 17.3) * 0.5 + Math.cos(z * 0.05 + 0.7) * 0.3;
+            const sy = Math.sin((x + z) * 0.03 + 2.3) * 0.2 + Math.cos(z * 0.07 - 1.2) * 0.3;
+            return sx + sy;
+        }
+        function generateChunk(chunk) {
+            const { x, z } = chunk;
+            for (let bx = 0; bx < CHUNK_SIZE; bx++) {
+                for (let bz = 0; bz < CHUNK_SIZE; bz++) {
+                    const wx = x * CHUNK_SIZE + bx;
+                    const wz = z * CHUNK_SIZE + bz;
+                    const h = Math.floor(SEA_LEVEL + noise2D(wx, wz) * 5 + Math.sin(wx * 0.08) * 1.2 + Math.cos(wz * 0.06) * 1.2);
+                    for (let y = 0; y < CHUNK_H; y++) {
+                        let id = B.AIR;
+                        if (y === 0) id = B.BEDROCK;
+                        else if (y < h - 3) id = B.STONE;
+                        else if (y < h) id = B.DIRT;
+                        else if (y === h) id = B.GRASS;
+                        if (y < SEA_LEVEL - 2 && y < h) id = B.WATER;
+                        if (y < h && y > 1 && Math.random() < 0.0012) id = B.CACTUS;
+                        if (y === h && Math.random() < 0.003 && h > SEA_LEVEL + 2) {
+                            // tree
+                            const treeY = h + 1;
+                            if (treeY < CHUNK_H - 3) {
+                                for (let ty = 0; ty < 4; ty++) { if (treeY + ty < CHUNK_H) { chunk.blocks[bx + bz * CHUNK_SIZE + (treeY + ty) * CHUNK_SIZE * CHUNK_SIZE] = B.WOOD; } }
+                                for (let lx = -2; lx <= 2; lx++) for (let lz = -2; lz <= 2; lz++) if (Math.abs(lx) + Math.abs(lz) < 5) { const py = treeY + 3; const px = wx + lx; const pz = wz + lz; if (px === wx && pz === wz) continue; if (Math.abs(lx) <= 1 && Math.abs(lz) <= 1) continue; const blockY = py; if (blockY < CHUNK_H) { const cx2 = Math.floor(px / CHUNK_SIZE), cz2 = Math.floor(pz / CHUNK_SIZE); if (cx2 === x && cz2 === z) { const bX = ((px % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE; const bZ = ((pz % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE; chunk.blocks[bX + bZ * CHUNK_SIZE + blockY * CHUNK_SIZE * CHUNK_SIZE] = B.LEAVES; } } }
+                            }
+                        }
+                        chunk.blocks[bx + bz * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE] = id;
+                    }
+                }
+            }
+            chunk.ready = true;
+            rebuildChunkMesh(chunk);
+        }
+
+        function rebuildChunkMesh(chunk) {
+            const positions = []; const normals = []; const uvs = []; const colors = [];
+            for (let y = 0; y < CHUNK_H; y++) {
+                for (let z = 0; z < CHUNK_SIZE; z++) {
+                    for (let x = 0; x < CHUNK_SIZE; x++) {
+                        const id = chunk.blocks[x + z * CHUNK_SIZE + y * CHUNK_SIZE * CHUNK_SIZE];
+                        if (!id || id === B.AIR || id === B.WATER || id === B.TORCH) continue;
+                        const def = BLOCKS[id];
+                        const wx = chunk.x * CHUNK_SIZE + x;
+                        const wz = chunk.z * CHUNK_SIZE + z;
+                        const neighbor = (dx, dy, dz) => getBlock(wx + dx, y + dy, wz + dz);
+                        const solidNeighbor = (dx, dy, dz) => { const n = neighbor(dx, dy, dz); return n && n !== B.AIR && n !== B.WATER; };
+                        if (!solidNeighbor(-1, 0, 0)) addFace(-0.5, -0.5, -0.5, 0, 0, -1, def.color, positions, normals, uvs, colors);
+                        if (!solidNeighbor(1, 0, 0)) addFace(0.5, -0.5, 0.5, 0, 0, 1, def.color, positions, normals, uvs, colors);
+                        if (!solidNeighbor(0, -1, 0)) addFace(-0.5, -0.5, -0.5, 0, -1, 0, def.color, positions, normals, uvs, colors);
+                        if (!solidNeighbor(0, 1, 0)) addFace(-0.5, 0.5, -0.5, 0, 1, 0, def.color, positions, normals, uvs, colors);
+                        if (!solidNeighbor(0, 0, -1)) addFace(-0.5, -0.5, -0.5, -1, 0, 0, def.color, positions, normals, uvs, colors);
+                        if (!solidNeighbor(0, 0, 1)) addFace(0.5, -0.5, 0.5, 1, 0, 0, def.color, positions, normals, uvs, colors);
+                    }
+                }
+            }
+            if (chunk.mesh) { chunk.mesh.geometry.dispose(); worldGroup.remove(chunk.mesh); }
+            if (positions.length === 0) { chunk.mesh = null; return; }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeBoundingSphere();
+            const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+            chunk.mesh = new THREE.Mesh(geometry, material);
+            chunk.mesh.position.set(chunk.x * CHUNK_SIZE, 0, chunk.z * CHUNK_SIZE);
+            worldGroup.add(chunk.mesh);
+        }
+        function addFace(x0, y0, z0, nx, ny, nz, color, positions, normals, uvs, colors) {
+            const base = [[x0, y0, z0], [x0 + 1, y0, z0], [x0 + 1, y0 + 1, z0], [x0, y0 + 1, z0]];
+            const verts = [];
+            if (nz === 1) { verts.push([x0, y0, z0 + 1], [x0 + 1, y0, z0 + 1], [x0 + 1, y0 + 1, z0 + 1], [x0, y0 + 1, z0 + 1]); }
+            else if (nz === -1) { verts.push([x0, y0, z0], [x0 + 1, y0, z0], [x0 + 1, y0 + 1, z0], [x0, y0 + 1, z0]); }
+            else if (nx === 1) { verts.push([x0 + 1, y0, z0], [x0 + 1, y0, z0 + 1], [x0 + 1, y0 + 1, z0 + 1], [x0 + 1, y0 + 1, z0]); }
+            else if (nx === -1) { verts.push([x0, y0, z0], [x0, y0, z0 + 1], [x0, y0 + 1, z0 + 1], [x0, y0 + 1, z0]); }
+            else if (ny === 1) { verts.push([x0, y0 + 1, z0], [x0 + 1, y0 + 1, z0], [x0 + 1, y0 + 1, z0 + 1], [x0, y0 + 1, z0 + 1]); }
+            else { verts.push([x0, y0, z0], [x0 + 1, y0, z0], [x0 + 1, y0, z0 + 1], [x0, y0, z0 + 1]); }
+            const face = [[0, 1, 2], [2, 3, 0]];
+            for (const [a, b, c] of face) {
+                const vA = verts[a], vB = verts[b], vC = verts[c];
+                for (const v of [vA, vB, vC]) { positions.push(v[0], v[1], v[2]); normals.push(nx, ny, nz); uvs.push(0, 0); colors.push(...color); }
+            }
+        }
+        function loadWorld() {
+            const c = Math.floor(player.pos.x / CHUNK_SIZE), cz = Math.floor(player.pos.z / CHUNK_SIZE);
+            for (let x = -RENDER_DIST; x <= RENDER_DIST; x++) for (let z = -RENDER_DIST; z <= RENDER_DIST; z++) { const key = `${c + x},${cz + z}`; if (!chunks.has(key)) { const chunk = { x: c + x, z: cz + z, blocks: new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_H), ready: false }; chunks.set(key, chunk); generateChunk(chunk); } }
+            updateChunks();
+        }
+        function updateChunks() {
+            const c = Math.floor(player.pos.x / CHUNK_SIZE), cz = Math.floor(player.pos.z / CHUNK_SIZE);
+            for (const [k, chunk] of chunks) { const dx = chunk.x - c, dz = chunk.z - cz; if (Math.abs(dx) > RENDER_DIST + 1 || Math.abs(dz) > RENDER_DIST + 1) { chunks.delete(k); if (chunk.mesh) { chunk.mesh.geometry.dispose(); chunk.mesh.material.dispose(); worldGroup.remove(chunk.mesh); } } }
+        }
+        function raycastBlock(distance = 6) {
+            const origin = new THREE.Vector3(player.pos.x, player.pos.y + 1.6, player.pos.z);
+            const dir = new THREE.Vector3();
+            dir.set(Math.sin(player.yaw), Math.tan(player.pitch), Math.cos(player.yaw));
+            dir.normalize();
+            let hit = null;
+            for (let step = 0; step < distance * 20; step++) {
+                const x = origin.x + dir.x * step * 0.05;
+                const y = origin.y + dir.y * step * 0.05;
+                const z = origin.z + dir.z * step * 0.05;
+                const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
+                const id = getBlock(bx, by, bz);
+                if (id && id !== B.AIR && id !== B.WATER) {
+                    hit = { x: bx, y: by, z: bz, id };
+                    break;
+                }
+            }
+            return hit;
+        }
+        function breakBlock() {
+            const hit = raycastBlock(6);
+            if (!hit) return;
+            if (hit.id === B.BEDROCK) return;
+            setBlock(hit.x, hit.y, hit.z, B.AIR);
+            if (player.mode === 'survival') addItem(hit.id, 1);
+            actionbar.textContent = `Casse ${BLOCKS[hit.id]?.name || 'bloc'}`;
+            setTimeout(() => { if (actionbar.textContent.startsWith('Casse')) actionbar.textContent = 'Cliquez pour casser/placer · E pour ouvrir l\'inventaire'; }, 800);
+        }
+        function placeBlock() {
+            const hit = raycastBlock(6);
+            if (!hit) return;
+            const selected = getSelectedSlot();
+            if (!selected || !selected.id || typeof selected.id !== 'number') return;
+            const bx = hit.x + (Math.round(Math.sin(player.yaw)) || 1) * (Math.sign(Math.sin(player.yaw)) || 1);
+            const by = hit.y;
+            const bz = hit.z + (Math.round(Math.cos(player.yaw)) || 1) * (Math.sign(Math.cos(player.yaw)) || 1);
+            const current = getBlock(bx, by, bz);
+            if (current !== B.AIR) return;
+            const blockId = selected.id;
+            if (player.mode === 'survival') { consumeItem(blockId, 1); }
+            setBlock(bx, by, bz, blockId);
+        }
+
+        function updatePlayer(dt) {
+            if (!gameStarted || paused || inventoryOpen) return;
+            const speed = player.sprint ? 5.8 : 4.2;
+            const move = new THREE.Vector3();
+            if (keys['KeyW'] || keys['ArrowUp']) move.z -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) move.z += 1;
+            if (keys['KeyA'] || keys['KeyQ']) move.x -= 1;
+            if (keys['KeyD'] || keys['KeyE']) move.x += 1;
+            if (move.lengthSq() > 0) move.normalize();
+            const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+            const right = new THREE.Vector3(-Math.cos(player.yaw), 0, Math.sin(player.yaw));
+            const desired = new THREE.Vector3();
+            desired.addScaledVector(fwd, move.z); desired.addScaledVector(right, move.x);
+            desired.normalize();
+            if (player.fly) { player.vel.y = keys['Space'] ? 6 : keys['ShiftLeft'] ? -6 : player.vel.y; }
+            else { player.vel.y += -20 * dt; }
+            if (player.onGround && (keys['Space'] || keys['KeyShift'])) { player.vel.y = 6.4; player.onGround = false; }
+            player.vel.x = desired.x * speed; player.vel.z = desired.z * speed;
+            const newPos = player.pos.clone().add(new THREE.Vector3(player.vel.x * dt, player.vel.y * dt, player.vel.z * dt));
+            const prev = player.pos.clone();
+            player.pos.x = newPos.x;
+            const collisionX = checkCollision(player.pos.x, player.pos.y, player.pos.z);
+            if (collisionX) { player.pos.x = prev.x; player.vel.x = 0; }
+            player.pos.z = newPos.z;
+            const collisionZ = checkCollision(player.pos.x, player.pos.y, player.pos.z);
+            if (collisionZ) { player.pos.z = prev.z; player.vel.z = 0; }
+            player.pos.y = newPos.y;
+            const collisionY = checkCollision(player.pos.x, player.pos.y, player.pos.z);
+            if (collisionY) {
+                if (player.vel.y < 0) player.onGround = true; else player.onGround = false;
+                player.pos.y = prev.y; player.vel.y = 0;
+            } else { player.onGround = false; }
+            if (player.pos.y < 0) { player.pos.y = 25; player.health -= 2; }
+            player.hunger = Math.max(0, player.hunger - dt * 0.005);
+            if (player.hunger <= 0) player.health -= dt * 0.4;
+            camera.position.set(player.pos.x, player.pos.y + 1.62, player.pos.z);
+            camera.rotation.order = 'YXZ'; camera.rotation.set(player.pitch, player.yaw, 0);
+            if (player.health <= 0) { gameStarted = false; death.classList.remove('hidden'); }
+        }
+        function checkCollision(x, y, z) {
+            const minX = x - player.radius, maxX = x + player.radius; const minY = y, maxY = y + player.height; const minZ = z - player.radius, maxZ = z + player.radius;
+            for (let bx = Math.floor(minX); bx <= Math.ceil(maxX); bx++) for (let by = Math.floor(minY); by <= Math.ceil(maxY); by++) for (let bz = Math.floor(minZ); bz <= Math.ceil(maxZ); bz++) {
+                const id = getBlock(bx, by, bz);
+                if (id && id !== B.AIR && id !== B.WATER && id !== B.TORCH) { return true; }
+            }
+            return false;
+        }
+        function updateWorld(dt) {
+            worldTime += dt * 0.01;
+            const t = (worldTime % 360) / 360;
+            const sunFactor = 0.5 + 0.5 * Math.sin(t * Math.PI * 2);
+            const sky = new THREE.Color().setHSL(0.58 - 0.1 * sunFactor, 0.7, 0.6 + 0.15 * sunFactor);
+            scene.background = sky;
+            scene.fog.color.copy(sky);
+            ambient.intensity = 0.35 + 0.35 * sunFactor;
+            sun.intensity = 0.35 + 0.65 * sunFactor;
+            sun.position.set(30 * Math.sin(t * Math.PI * 2), 20 + 10 * sunFactor, 30 * Math.cos(t * Math.PI * 2));
+            updateChunks();
+            if (performance.now() - lastSave > 30000) { saveGame(); lastSave = performance.now(); }
+        }
+
+        function updateUI() {
+            hpBar.style.width = `${Math.max(0, player.health / 20 * 100)}%`;
+            hungerBar.style.width = `${Math.max(0, player.hunger / 20 * 100)}%`;
+            coordsEl.textContent = `x:${Math.round(player.pos.x)} y:${Math.round(player.pos.y)} z:${Math.round(player.pos.z)}`;
+            renderHotbar();
+            renderInventory();
+            const debug = `mode:${player.mode}\nchunks:${chunks.size}\ncam:${Math.round(player.pos.x)},${Math.round(player.pos.y)},${Math.round(player.pos.z)}\nFps:${Math.round(1 / clock.getDelta())}`;
+            debugEl.innerHTML = debug.replace(/\n/g, '<br>');
+        }
+        function renderHotbar() {
+            hotbarEl.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const slot = player.inventory[i];
+                const el = document.createElement('div');
+                el.className = 'slot' + (i === player.hotbarIndex ? ' active' : '');
+                el.dataset.index = i;
+                el.addEventListener('click', () => setSelectedSlot(i));
+                if (slot) {
+                    const item = ITEMS[slot.id] || BLOCKS[slot.id];
+                    el.innerHTML = `<div class="label">${i + 1}</div><div class="icon">${item?.icon || '■'}</div><div class="count">${slot.count}</div>`;
+                } else {
+                    el.innerHTML = `<div class="label">${i + 1}</div>`;
+                }
+                hotbarEl.appendChild(el);
+            }
+        }
+        function renderInventory() {
+            invGrid.innerHTML = '';
+            hotbarInv.innerHTML = '';
+            recipeGrid.innerHTML = '';
+            for (let i = 0; i < 27; i++) {
+                const slot = player.inventory[i];
+                const el = document.createElement('div'); el.className = 'slot'; el.dataset.index = i;
+                el.addEventListener('click', () => { if (i < 9) { setSelectedSlot(i); } else { const current = player.inventory[i]; if (current) { player.inventory[player.hotbarIndex] = current; player.inventory[i] = null; } } updateUI(); });
+                if (slot) { const item = ITEMS[slot.id] || BLOCKS[slot.id]; el.innerHTML = `<div class="icon">${item?.icon || '■'}</div><div class="count">${slot.count}</div>`; }
+                invGrid.appendChild(el);
+            }
+            for (let i = 0; i < 9; i++) {
+                const slot = player.inventory[i]; const el = document.createElement('div'); el.className = 'slot' + (i === player.hotbarIndex ? ' active' : ''); el.dataset.index = i; el.addEventListener('click', () => setSelectedSlot(i)); if (slot) { const item = ITEMS[slot.id] || BLOCKS[slot.id]; el.innerHTML = `<div class="icon">${item?.icon || '■'}</div><div class="count">${slot.count}</div>`; } hotbarInv.appendChild(el);
+            }
+            const rec = RECIPES[0];
+            const recipeEl = document.createElement('div'); recipeEl.className = 'slot big'; recipeEl.textContent = '🧰'; recipeGrid.appendChild(recipeEl);
+            const craftBtn = document.getElementById('craftBtn'); craftBtn.onclick = () => craftRecipe();
+        }
+
+        function saveGame() {
+            const data = { player: { pos: [player.pos.x, player.pos.y, player.pos.z], yaw: player.yaw, pitch: player.pitch, health: player.health, hunger: player.hunger, inventory: player.inventory, hotbarIndex: player.hotbarIndex, mode: player.mode }, chunks: Array.from(chunks.entries()).filter(([k, c]) => c.ready).map(([k, c]) => ({ k, data: Array.from(c.blocks) })), chests: Array.from(chests.entries()), furnaces: Array.from(furnaces.entries()) };
+            localStorage.setItem(saveKey, JSON.stringify(data));
+        }
+        function loadSave() {
+            const raw = localStorage.getItem(saveKey); if (!raw) return; try {
+                const data = JSON.parse(raw); if (data.player) { player.pos.set(...data.player.pos); player.yaw = data.player.yaw || player.yaw; player.pitch = data.player.pitch || player.pitch; player.health = data.player.health || player.health; player.hunger = data.player.hunger || player.hunger; player.inventory = data.player.inventory || player.inventory; player.hotbarIndex = data.player.hotbarIndex || 0; player.mode = data.player.mode || 'survival'; }
+                for (const [k, c] of chunks) { if (c.mesh) { c.mesh.geometry.dispose(); c.mesh.material.dispose(); worldGroup.remove(c.mesh); } }
+                chunks.clear();
+                for (const entry of data.chunks || []) { const [x, z] = entry.k.split(',').map(Number); const chunk = { x, z, blocks: new Uint8Array(entry.data), ready: true }; chunks.set(entry.k, chunk); rebuildChunkMesh(chunk); }
+                chests.clear(); for (const [k, v] of data.chests || []) chests.set(k, v);
+                furnaces.clear(); for (const [k, v] of data.furnaces || []) furnaces.set(k, v);
+            } catch (e) { console.warn('save load failed', e); }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.033);
+            if (gameStarted && !paused && !inventoryOpen) { updatePlayer(dt); updateWorld(dt); }
+            updateUI();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => { renderer.setSize(window.innerWidth, window.innerHeight); camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); });
+
+        // touch controls
+        const touchMove = document.getElementById('touch-move');
+        const touchJump = document.getElementById('touch-jump');
+        const touchInv = document.getElementById('touch-inv');
+        const touchBreak = document.getElementById('touch-break');
+        const touchPlace = document.getElementById('touch-place');
+        const touchSprint = document.getElementById('touch-sprint');
+        let touchDir = { x: 0, z: 0 };
+        function bindTouch(el, downFn, upFn) { el.addEventListener('touchstart', (e) => { e.preventDefault(); downFn(e); }, { passive: false }); el.addEventListener('touchend', (e) => { e.preventDefault(); upFn(e); }); el.addEventListener('touchcancel', (e) => { e.preventDefault(); upFn(e); }); }
+        bindTouch(touchMove, () => { touchDir = { x: 1, z: 0 }; }, () => { touchDir = { x: 0, z: 0 }; });
+        bindTouch(touchJump, () => { if (gameStarted && !paused && !inventoryOpen) player.vel.y = 6.4; }, () => { });
+        bindTouch(touchInv, () => { inventoryOpen = !inventoryOpen; inventoryUI.classList.toggle('hidden', !inventoryOpen); if (inventoryOpen) document.exitPointerLock?.(); else document.body.requestPointerLock?.(); }, () => { });
+        bindTouch(touchBreak, () => breakBlock(), () => { });
+        bindTouch(touchPlace, () => placeBlock(), () => { });
+        bindTouch(touchSprint, () => { player.sprint = true; }, () => { player.sprint = false; });
+
+        setMode('survival');
+        updateUI();
+        loadWorld();
+    </script>
+</body>
+
+</html>
